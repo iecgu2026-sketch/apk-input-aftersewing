@@ -125,7 +125,7 @@ st.subheader("Informasi Produksi")
 group = st.text_input("Group", key=f"group_{f_key}")
 line = st.text_input("Line", key=f"line_{f_key}")
 
-pilihan_proses = ["END LINE", "SNAP", "IRON","TANDA KANCING","PASANG KANCING","EMBLEM"]
+pilihan_proses = ["END LINE", "SNAP", "IRON","TANDA KANCING","PASANG KANCING","EMBLEM","LUBANG KANCING"]
 proses = st.selectbox("Proses", pilihan_proses, key=f"proses_{f_key}")
 
 style = st.text_input("Style", key=f"style_{f_key}")
@@ -133,7 +133,7 @@ color = st.text_input("Color", key=f"color_{f_key}")
 
 # 9. Input Size & Qty (Grid Layout)
 st.subheader("Input Qty per Size")
-daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
+daftar_size = ["XS", "XL", "2XL", "4XL", "S", "M", "L", "OVERSIZE"]
 qty_inputs = {}
 
 cols = st.columns(4)
