@@ -4,18 +4,28 @@ import gspread
 import json
 from google.oauth2.service_account import Credentials
 
-# Konfigurasi Halaman (Harus dipanggil pertama kali sebelum elemen UI lainnya)
+# Konfigurasi Halaman (Harus dipanggil pertama kali)
 st.set_page_config(page_title="Data Produksi", page_icon="🏭", layout="centered")
 
-# --- KUSTOMISASI DESAIN CSS ---
+# --- KUSTOMISASI DESAIN CSS (HILANGKAN HEADER BAWAAN & STYLING) ---
 custom_css = """
 <style>
-/* Mengubah background aplikasi menjadi abu-abu terang */
+/* 1. Menghilangkan Header atas bawaan Streamlit (ikon GitHub, Deploy, Menu titik tiga, dll) */
+header {
+    visibility: hidden;
+}
+
+/* 2. Menghilangkan Footer bawaan Streamlit ("Made with Streamlit") */
+footer {
+    visibility: hidden;
+}
+
+/* 3. Mengubah background aplikasi menjadi abu-abu terang */
 .stApp {
     background-color: #E8ECEF;
 }
 
-/* Memaksa seluruh teks, judul, dan label menjadi warna hitam pekat agar jelas di HP */
+/* Memaksa teks label, judul, dan paragraf menjadi warna hitam */
 h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {
     color: #000000 !important;
 }
@@ -27,13 +37,14 @@ h1, h2, h3 {
     margin-bottom: 20px;
 }
 
-/* Mempercantik kotak input agar teks ketikannya hitam dan kontras */
+/* Mempercantik kotak input */
 .stTextInput>div>div>input, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
     background-color: #FFFFFF;
     color: #000000 !important;
     border-radius: 5px;
 }
-/* Mengatur warna tombol Submit agar tidak ngeblock hitam (menjadi abu-abu gelap elegan dengan teks putih) */
+
+/* Mengatur warna tombol Submit */
 div.stButton > button {
     background-color: #4A5568 !important;
     color: #FFFFFF !important;
@@ -42,7 +53,6 @@ div.stButton > button {
     font-weight: bold;
 }
 
-/* Efek saat tombol disentuh/di-klik */
 div.stButton > button:hover {
     background-color: #2D3748 !important;
     color: #FFFFFF !important;
@@ -50,7 +60,7 @@ div.stButton > button:hover {
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
-# ------------------------------
+# -------------------------------------------------------------
 
 # Konfigurasi Akses Google Sheets
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -58,9 +68,13 @@ SPREADSHEET_ID = '17ucBxMw5i6VxGrvNMjPGU9DAiwtkeLmHA4ndefD0oR4'
 
 def get_sheet():
     try:
-        # Mengambil data kredensial dari fitur rahasia Streamlit (st.secrets)
-        kredensial_rahasia = json.loads(st.secrets["kredensial_google"])
-        credentials = Credentials.from_service_account_info(kredensial_rahasia, scopes=SCOPES)
+        # Cek apakah menggunakan secrets (untuk Cloud) atau file lokal
+        if "kredensial_google" in st.secrets:
+            kredensial_rahasia = json.loads(st.secrets["kredensial_google"])
+            credentials = Credentials.from_service_account_info(kredensial_rahasia, scopes=SCOPES)
+        else:
+            credentials = Credentials.from_service_account_file('credentials.json', scopes=SCOPES)
+            
         client = gspread.authorize(credentials)
         sheet = client.open_by_key(SPREADSHEET_ID).sheet1
         return sheet
@@ -68,19 +82,23 @@ def get_sheet():
         st.error(f"Gagal terhubung ke Google Sheets: {e}")
         return None
 
-# --- BAGIAN HEADER & LOGO ---
-col_logo, col_judul = st.columns([1, 5], vertical_alignment="center")
+# --- BAGIAN HEADER: LOGO, JUDUL, & TOMBOL REFRESH ---
+col_logo, col_judul, col_refresh = st.columns([1, 4, 1.2], vertical_alignment="center")
 
 with col_logo:
     try:
-        # PENTING: Ganti .png menjadi .jpg jika format file logomu adalah JPG
-        st.image("logo pt.png", width=100) 
-    except Exception as e:
-        st.warning("Logo belum terbaca. Cek nama dan ekstensi file.")
+        st.image("logo pt.png", width=90) 
+    except:
+        st.write("Logo")
 
 with col_judul:
-    st.title("Form Input Data Produksi")
-# -----------------------------
+    st.title("Form Input")
+
+with col_refresh:
+    # Tombol Refresh untuk memuat ulang halaman
+    if st.button("🔄 Refresh", use_container_width=True):
+        st.rerun()
+# ---------------------------------------------------
 
 # 1. Tanggal (Otomatis hari ini)
 tanggal_hari_ini = datetime.date.today()
@@ -102,8 +120,7 @@ st.subheader("Informasi Produksi")
 group = st.text_input("Group")
 line = st.text_input("Line")
 
-# Inputan PROSES menggunakan dropdown
-pilihan_proses = ["END LINE", "SNAP", "IRON","LUBANG KANCING","PASANG KANCING", "TANDA KANCING","EMBLEM"]
+pilihan_proses = ["END LINE", "SNAP", "IRON"]
 proses = st.selectbox("Proses", pilihan_proses)
 
 style = st.text_input("Style")
@@ -114,15 +131,14 @@ st.subheader("Input Qty per Size")
 daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
 qty_inputs = {}
 
-# Membuat 4 kolom sejajar agar tampilan lebih rapi
 cols = st.columns(4)
 for i, size in enumerate(daftar_size):
     with cols[i % 4]:
         qty_inputs[size] = st.number_input(f"Size {size}", min_value=0, step=1, key=f"qty_{size}")
 
 # Tombol Submit
-st.markdown("<br>", unsafe_allow_html=True) # Menambah sedikit jarak kosong sebelum tombol
-if st.button("Submit Data", use_container_width=True): # Tombol dibuat memanjang menyesuaikan lebar
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("Submit Data", use_container_width=True):
     total_qty = sum(qty_inputs.values())
     
     if group and line and style and color and total_qty > 0:
