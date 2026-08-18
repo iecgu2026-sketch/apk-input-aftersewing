@@ -61,11 +61,6 @@ div.stButton > button:hover {
     background-color: #2D3748 !important;
     color: #FFFFFF !important;
 }
-
-/* Styling Tabel Resume */
-dataframe {
-    background-color: #FFFFFF;
-}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -164,15 +159,15 @@ if st.button("Submit Data"):
                 for size, qty in qty_inputs.items():
                     if qty > 0:
                         row_data = [
-                            tanggal_str,
-                            jam_update,
-                            group,
-                            line,
-                            proses,  
-                            style,
-                            color,
-                            size,
-                            qty
+                            tanggal_str,    # Kolom A: TANGGAL
+                            jam_update,     # Kolom B: JAM UPDATE
+                            group,          # Kolom C: GROUP
+                            line,           # Kolom D: LINE
+                            proses,         # Kolom E: PROSES  
+                            style,          # Kolom F: STYLE
+                            color,          # Kolom G: COLOR
+                            size,           # Kolom H: SIZE
+                            qty             # Kolom I: QTY
                         ]
                         rows_data.append(row_data)
                 
@@ -193,36 +188,37 @@ st.subheader(f"📊 Resume Produksi Hari Ini ({tanggal_str})")
 sheet = get_sheet()
 if sheet:
     try:
-        # Mengambil seluruh data dari Google Sheets
         all_data = sheet.get_all_records()
         
         if all_data:
             df = pd.DataFrame(all_data)
             
-            # Memastikan nama kolom sesuai dengan urutan di Google Sheets Anda
-            # Berdasarkan struktur data: Tanggal, Jam, Group, Line, Proses, Style, Color, Size, Qty
-            if 'Tanggal' in df.columns and 'Qty' in df.columns:
-                # Filter hanya untuk data hari ini
-                df_hari_ini = df[df['Tanggal'] == tanggal_str].copy()
+            # Normalisasi nama kolom menjadi kapital semua agar aman dicocokkan dengan header Sheets
+            df.columns = [str(col).strip().upper() for col in df.columns]
+            
+            if 'TANGGAL' in df.columns and 'QTY' in df.columns:
+                # Filter data berdasarkan tanggal hari ini
+                df_hari_ini = df[df['TANGGAL'] == tanggal_str].copy()
                 
                 if not df_hari_ini.empty:
-                    # Mengubah kolom Qty menjadi angka (integer) agar bisa di-sum
-                    df_hari_ini['Qty'] = pd.to_numeric(df_hari_ini['Qty'], errors='coerce').fillna(0)
+                    df_hari_ini['QTY'] = pd.to_numeric(df_hari_ini['QTY'], errors='coerce').fillna(0)
                     
-                    # Membuat tabel pivot / rekap berdasarkan Line, Style, dan Proses, dengan rincian Jam Terakhir Update
-                    # Atau rekap total per Line, Style, Proses, dan Size
-                    rekap_df = df_hari_ini.groupby(['Line', 'Style', 'Proses', 'Jam', 'Size'], as_index=False)['Qty'].sum()
+                    # Mengelompokkan rekap sesuai header Sheets (LINE, STYLE, PROSES, JAM UPDATE, SIZE)
+                    group_cols = [col for col in ['LINE', 'STYLE', 'PROSES', 'JAM UPDATE', 'SIZE'] if col in df_hari_ini.columns]
                     
-                    # Menampilkan tabel rekap interaktif
-                    st.dataframe(rekap_df, use_container_width=True, hide_index=True)
+                    if group_cols:
+                        rekap_df = df_hari_ini.groupby(group_cols, as_index=False)['QTY'].sum()
+                        st.dataframe(rekap_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.dataframe(df_hari_ini, use_container_width=True, hide_index=True)
                     
-                    # Menampilkan total keseluruhan Qty hari ini
-                    total_produksi_hari_ini = df_hari_ini['Qty'].sum()
+                    # Total keseluruhan Qty hari ini
+                    total_produksi_hari_ini = df_hari_ini['QTY'].sum()
                     st.metric(label="Total Qty Produksi Hari Ini", value=int(total_produksi_hari_ini))
                 else:
                     st.info("Belum ada data produksi yang diinput untuk hari ini.")
             else:
-                st.warning("Format kolom pada Google Sheets belum terbaca dengan benar (pastikan header kolom bernama Tanggal, Jam, Group, Line, Proses, Style, Color, Size, Qty).")
+                st.warning("Pastikan header di Google Sheets baris pertama sudah terisi: TANGGAL, JAM UPDATE, GROUP, LINE, PROSES, STYLE, COLOR, SIZE, QTY.")
         else:
             st.info("Google Sheets masih kosong.")
     except Exception as e:
