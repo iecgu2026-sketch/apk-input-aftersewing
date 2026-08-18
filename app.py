@@ -207,7 +207,14 @@ if sheet:
             df.columns = [str(col).strip().upper() for col in df.columns]
             
             if 'TANGGAL' in df.columns and 'QTY' in df.columns:
-                df_hari_ini = df[df['TANGGAL'] == tanggal_str].copy()
+                # Membersihkan format tanggal di Google Sheets agar seragam dibaca string
+                df['TANGGAL_CLEAN'] = df['TANGGAL'].astype(str).str.split(' ').str[0]
+                
+                # Filter data berdasarkan tanggal hari ini (mencocokkan format DD-MM-YYYY atau YYYY-MM-DD)
+                df_hari_ini = df[
+                    (df['TANGGAL_CLEAN'] == tanggal_str) | 
+                    (df['TANGGAL_CLEAN'] == tanggal_hari_ini.strftime("%Y-%m-%d"))
+                ].copy()
                 
                 if not df_hari_ini.empty:
                     df_hari_ini['QTY'] = pd.to_numeric(df_hari_ini['QTY'], errors='coerce').fillna(0)
@@ -218,7 +225,6 @@ if sheet:
                     
                     rekap['QTY KUMULATIF'] = rekap.groupby(['PROSES', 'LINE'])['QTY JAM INI'].cumsum()
                     
-                    # Mengatur agar "OUT SEWING" selalu di prioritas pertama (urutan 0)
                     def urutan_proses(p):
                         if str(p).strip().upper() == "OUT SEWING":
                             return 0
@@ -247,7 +253,7 @@ if sheet:
                                 st.metric(label=f"Total {proses_list[i+1][0]}", value=int(proses_list[i+1][1]))
                                 
                 else:
-                    st.info("Belum ada data produksi yang diinput untuk hari ini.")
+                    st.info(f"Belum ada data produksi yang diinput untuk hari ini ({tanggal_str}). Coba input data baru melalui form di atas.")
             else:
                 st.warning("Pastikan header di Google Sheets baris pertama sudah sesuai.")
         else:
