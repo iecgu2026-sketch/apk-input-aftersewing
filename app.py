@@ -17,6 +17,10 @@ header {
 footer {
     visibility: hidden;
 }
+/* Memangkas jarak kosong (space) di bagian atas halaman agar lebih naik ke atas */
+.stMainBlockContainer {
+    padding-top: 2rem !important;
+}
 
 /* Mengubah background aplikasi menjadi abu-abu terang */
 .stApp {
