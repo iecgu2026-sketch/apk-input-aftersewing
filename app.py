@@ -159,15 +159,15 @@ if st.button("Submit Data"):
                 for size, qty in qty_inputs.items():
                     if qty > 0:
                         row_data = [
-                            tanggal_str,    # Kolom A: TANGGAL
-                            jam_update,     # Kolom B: JAM UPDATE
-                            group,          # Kolom C: GROUP
-                            line,           # Kolom D: LINE
-                            proses,         # Kolom E: PROSES  
-                            style,          # Kolom F: STYLE
-                            color,          # Kolom G: COLOR
-                            size,           # Kolom H: SIZE
-                            qty             # Kolom I: QTY
+                            tanggal_str,    # TANGGAL
+                            jam_update,     # JAM UPDATE
+                            group,          # GROUP
+                            line,           # LINE
+                            proses,         # PROSES  
+                            style,          # STYLE
+                            color,          # COLOR
+                            size,           # SIZE
+                            qty             # QTY
                         ]
                         rows_data.append(row_data)
                 
@@ -177,11 +177,11 @@ if st.button("Submit Data"):
             except Exception as e:
                 st.error(f"Terjadi kesalahan saat menyimpan: {e}")
     else:
-        st.warning("Mohon lengkapi semua field text dan pastikan minimal ada satu Size dengan Qty lebih dari 0.")
+        st.warning("Mohon lengkapi semua field text dan pastikan minimal ada satu Size dengan Qty lebih dan Qty > 0.")
 
-# ==========================================
-# --- BAGIAN RESUME / REKAP PRODUKSI HARI INI ---
-# ==========================================
+# ==========================================================
+# --- BAGIAN RESUME / REKAP PRODUKSI HARI INI (DENGAN KUMULATIF) ---
+# ==========================================================
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader(f"📊 Resume Produksi Hari Ini ({tanggal_str})")
 
@@ -192,25 +192,34 @@ if sheet:
         
         if all_data:
             df = pd.DataFrame(all_data)
-            
-            # Normalisasi nama kolom menjadi kapital semua agar aman dicocokkan dengan header Sheets
             df.columns = [str(col).strip().upper() for col in df.columns]
             
             if 'TANGGAL' in df.columns and 'QTY' in df.columns:
-                # Filter data berdasarkan tanggal hari ini
                 df_hari_ini = df[df['TANGGAL'] == tanggal_str].copy()
                 
                 if not df_hari_ini.empty:
                     df_hari_ini['QTY'] = pd.to_numeric(df_hari_ini['QTY'], errors='coerce').fillna(0)
                     
-                    # Mengelompokkan rekap sesuai header Sheets (LINE, STYLE, PROSES, JAM UPDATE, SIZE)
-                    group_cols = [col for col in ['LINE', 'STYLE', 'PROSES', 'JAM UPDATE', 'SIZE'] if col in df_hari_ini.columns]
+                    # 1. Sum Qty per Proses, Line, dan Jam Update
+                    rekap = df_hari_ini.groupby(['PROSES', 'LINE', 'JAM UPDATE'], as_index=False)['QTY'].sum()
+                    rekap.rename(columns={'QTY': 'QTY JAM INI'}, inplace=True)
                     
-                    if group_cols:
-                        rekap_df = df_hari_ini.groupby(group_cols, as_index=False)['QTY'].sum()
-                        st.dataframe(rekap_df, use_container_width=True, hide_index=True)
-                    else:
-                        st.dataframe(df_hari_ini, use_container_width=True, hide_index=True)
+                    # 2. Menghitung Qty Kumulatif per Proses & Line berdasarkan urutan Jam Update
+                    rekap['QTY KUMULATIF'] = rekap.groupby(['PROSES', 'LINE'])['QTY JAM INI'].cumsum()
+                    
+                    # 3. Mengatur urutan proses agar "END LINE" selalu berada di urutan paling atas, lalu proses lainnya
+                    def urutan_proses(p):
+                        if str(p).strip().upper() == "END LINE":
+                            return 0
+                        return 1
+
+                    rekap['PRIORITAS'] = rekap['PROSES'].apply(urutan_proses)
+                    
+                    # 4. Sorting berdasarkan prioritas proses (END LINE duluan), lalu Line, lalu Jam Update secara kronologis
+                    rekap = rekap.sort_values(by=['PRIORITAS', 'PROSES', 'LINE', 'JAM UPDATE']).drop(columns=['PRIORITAS'])
+                    
+                    # Tampilkan Tabel Resume
+                    st.dataframe(rekap, use_container_width=True, hide_index=True)
                     
                     # Total keseluruhan Qty hari ini
                     total_produksi_hari_ini = df_hari_ini['QTY'].sum()
@@ -218,7 +227,7 @@ if sheet:
                 else:
                     st.info("Belum ada data produksi yang diinput untuk hari ini.")
             else:
-                st.warning("Pastikan header di Google Sheets baris pertama sudah terisi: TANGGAL, JAM UPDATE, GROUP, LINE, PROSES, STYLE, COLOR, SIZE, QTY.")
+                st.warning("Pastikan header di Google Sheets baris pertama sudah sesuai.")
         else:
             st.info("Google Sheets masih kosong.")
     except Exception as e:
