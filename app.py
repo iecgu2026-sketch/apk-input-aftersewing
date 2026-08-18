@@ -7,20 +7,18 @@ from google.oauth2.service_account import Credentials
 # Konfigurasi Halaman (Harus dipanggil pertama kali)
 st.set_page_config(page_title="Data Produksi", page_icon="🏭", layout="centered")
 
-# --- KUSTOMISASI DESAIN CSS (HILANGKAN HEADER BAWAAN & STYLING) ---
+# --- KUSTOMISASI DESAIN CSS ---
 custom_css = """
 <style>
-/* 1. Menghilangkan Header atas bawaan Streamlit */
+/* Menghilangkan Header & Footer bawaan Streamlit */
 header {
     visibility: hidden;
 }
-
-/* 2. Menghilangkan Footer bawaan Streamlit */
 footer {
     visibility: hidden;
 }
 
-/* 3. Mengubah background aplikasi menjadi abu-abu terang */
+/* Mengubah background aplikasi menjadi abu-abu terang */
 .stApp {
     background-color: #E8ECEF;
 }
@@ -44,8 +42,8 @@ h1, h2, h3 {
     border-radius: 5px;
 }
 
-/* Mengatur warna tombol Submit di dalam form */
-div.stFormSubmitButton > button {
+/* Mengatur warna tombol Submit */
+div.stButton > button {
     background-color: #4A5568 !important;
     color: #FFFFFF !important;
     border-radius: 5px;
@@ -54,14 +52,13 @@ div.stFormSubmitButton > button {
     width: 100%;
 }
 
-div.stFormSubmitButton > button:hover {
+div.stButton > button:hover {
     background-color: #2D3748 !important;
     color: #FFFFFF !important;
 }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
-# -------------------------------------------------------------
 
 # Konfigurasi Akses Google Sheets
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -82,8 +79,8 @@ def get_sheet():
         st.error(f"Gagal terhubung ke Google Sheets: {e}")
         return None
 
-# --- BAGIAN HEADER: LOGO & JUDUL ---
-col_logo, col_judul = st.columns([1, 5], vertical_alignment="center")
+# --- BAGIAN HEADER: LOGO, JUDUL, & TOMBOL REFRESH ---
+col_logo, col_judul, col_refresh = st.columns([1, 4, 1.2], vertical_alignment="center")
 
 with col_logo:
     try:
@@ -93,7 +90,12 @@ with col_logo:
 
 with col_judul:
     st.title("Form Input")
-# -----------------------------------
+
+with col_refresh:
+    # Tombol Refresh untuk memuat ulang halaman secara manual
+    if st.button("🔄 Refresh"):
+        st.rerun()
+# ---------------------------------------------------
 
 # 1. Tanggal (Otomatis hari ini)
 tanggal_hari_ini = datetime.date.today()
@@ -110,37 +112,31 @@ while waktu_mulai <= waktu_selesai:
 
 jam_update = st.selectbox("Jam Update", pilihan_jam)
 
-# --- PEMBUATAN FORM AGAR OTOMATIS KOSONG SETELAH SUBMIT ---
-with st.form("form_produksi", clear_on_submit=True):
-    
-    # 3 - 8. Input Manual Text & Dropdown
-    st.subheader("Informasi Produksi")
-    group = st.text_input("Group")
-    line = st.text_input("Line")
+# 3 - 8. Input Manual Text & Dropdown
+st.subheader("Informasi Produksi")
+group = st.text_input("Group")
+line = st.text_input("Line")
 
-    pilihan_proses = ["END LINE", "SNAP", "IRON"]
-    proses = st.selectbox("Proses", pilihan_proses)
+pilihan_proses = ["END LINE", "SNAP", "IRON"]
+proses = st.selectbox("Proses", pilihan_proses)
 
-    style = st.text_input("Style")
-    color = st.text_input("Color")
+style = st.text_input("Style")
+color = st.text_input("Color")
 
-    # 9. Input Size & Qty (Grid Layout)
-    st.subheader("Input Qty per Size")
-    daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
-    qty_inputs = {}
+# 9. Input Size & Qty (Grid Layout)
+st.subheader("Input Qty per Size")
+daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
+qty_inputs = {}
 
-    cols = st.columns(4)
-    for i, size in enumerate(daftar_size):
-        with cols[i % 4]:
-            qty_inputs[size] = st.number_input(f"Size {size}", min_value=0, step=1, key=f"qty_{size}")
+cols = st.columns(4)
+for i, size in enumerate(daftar_size):
+    with cols[i % 4]:
+        qty_inputs[size] = st.number_input(f"Size {size}", min_value=0, step=1, key=f"qty_{size}")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Tombol Submit di dalam Form
-    submit_button = st.form_submit_button("Submit Data")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# --- PROSES KETIKA TOMBOL SUBMIT DI-KLIK ---
-if submit_button:
+# Tombol Submit (Manual, data tidak langsung hilang setelah submit)
+if st.button("Submit Data"):
     total_qty = sum(qty_inputs.values())
     
     if group and line and style and color and total_qty > 0:
