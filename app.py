@@ -10,22 +10,27 @@ st.set_page_config(page_title="Data Produksi", page_icon="🏭", layout="centere
 # --- KUSTOMISASI DESAIN CSS ---
 custom_css = """
 <style>
-/* Mengubah background aplikasi menjadi abu-abu muda */
+/* Mengubah background aplikasi menjadi abu-abu terang */
 .stApp {
     background-color: #E8ECEF;
 }
 
-/* Memberikan garis bawah pada semua Header (h1) dan Subheader (h2, h3) */
+/* Memaksa seluruh teks, judul, dan label menjadi warna hitam pekat agar jelas di HP */
+h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {
+    color: #000000 !important;
+}
+
+/* Memberikan garis bawah pada Header */
 h1, h2, h3 {
     border-bottom: 2px solid #2C3E50;
     padding-bottom: 8px;
     margin-bottom: 20px;
-    color: #1A252F;
 }
 
-/* Mempercantik kotak input agar lebih kontras (putih) */
+/* Mempercantik kotak input agar teks ketikannya hitam dan kontras */
 .stTextInput>div>div>input, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
     background-color: #FFFFFF;
+    color: #000000 !important;
     border-radius: 5px;
 }
 </style>
