@@ -129,7 +129,8 @@ st.subheader("Informasi Produksi")
 group = st.text_input("Group", key=f"group_{f_key}")
 line = st.text_input("Line", key=f"line_{f_key}")
 
-pilihan_proses = ["END LINE", "SNAP", "IRON", "TANDA KANCING", "PASANG KANCING", "EMBLEM", "LUBANG KANCING", "BARTACK", "FOLDING", "BUANG BENANG + KANCING"]
+# "OUT SEWING" ditaruh paling depan agar menjadi pilihan utama
+pilihan_proses = ["OUT SEWING", "SNAP", "IRON", "TANDA KANCING", "PASANG KANCING", "EMBLEM", "LUBANG KANCING", "BARTACK", "FOLDING", "BUANG BENANG + KANCING"]
 proses = st.selectbox("Proses", pilihan_proses, key=f"proses_{f_key}")
 
 style = st.text_input("Style", key=f"style_{f_key}")
@@ -206,8 +207,9 @@ if sheet:
                     
                     rekap['QTY KUMULATIF'] = rekap.groupby(['PROSES', 'LINE'])['QTY JAM INI'].cumsum()
                     
+                    # Mengatur agar "OUT SEWING" selalu di prioritas pertama (urutan 0)
                     def urutan_proses(p):
-                        if str(p).strip().upper() == "END LINE":
+                        if str(p).strip().upper() == "OUT SEWING":
                             return 0
                         return 1
 
@@ -217,7 +219,7 @@ if sheet:
                     # Tampilkan Tabel Resume
                     st.dataframe(rekap, use_container_width=True, hide_index=True)
                     
-                    # 2. Kotak Total per Proses (END LINE ditaruh paling depan)
+                    # 2. Kotak Total per Proses (OUT SEWING ditaruh paling depan)
                     st.markdown("### 📌 Total Qty per Proses")
                     total_per_proses = df_hari_ini.groupby('PROSES')['QTY'].sum().reset_index()
                     total_per_proses['PRIORITAS'] = total_per_proses['PROSES'].apply(urutan_proses)
