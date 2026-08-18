@@ -10,12 +10,12 @@ st.set_page_config(page_title="Data Produksi", page_icon="🏭", layout="centere
 # --- KUSTOMISASI DESAIN CSS (HILANGKAN HEADER BAWAAN & STYLING) ---
 custom_css = """
 <style>
-/* 1. Menghilangkan Header atas bawaan Streamlit (ikon GitHub, Deploy, Menu titik tiga, dll) */
+/* 1. Menghilangkan Header atas bawaan Streamlit */
 header {
     visibility: hidden;
 }
 
-/* 2. Menghilangkan Footer bawaan Streamlit ("Made with Streamlit") */
+/* 2. Menghilangkan Footer bawaan Streamlit */
 footer {
     visibility: hidden;
 }
@@ -44,16 +44,17 @@ h1, h2, h3 {
     border-radius: 5px;
 }
 
-/* Mengatur warna tombol Submit */
-div.stButton > button {
+/* Mengatur warna tombol Submit di dalam form */
+div.stFormSubmitButton > button {
     background-color: #4A5568 !important;
     color: #FFFFFF !important;
     border-radius: 5px;
     border: none;
     font-weight: bold;
+    width: 100%;
 }
 
-div.stButton > button:hover {
+div.stFormSubmitButton > button:hover {
     background-color: #2D3748 !important;
     color: #FFFFFF !important;
 }
@@ -68,7 +69,6 @@ SPREADSHEET_ID = '17ucBxMw5i6VxGrvNMjPGU9DAiwtkeLmHA4ndefD0oR4'
 
 def get_sheet():
     try:
-        # Cek apakah menggunakan secrets (untuk Cloud) atau file lokal
         if "kredensial_google" in st.secrets:
             kredensial_rahasia = json.loads(st.secrets["kredensial_google"])
             credentials = Credentials.from_service_account_info(kredensial_rahasia, scopes=SCOPES)
@@ -82,8 +82,8 @@ def get_sheet():
         st.error(f"Gagal terhubung ke Google Sheets: {e}")
         return None
 
-# --- BAGIAN HEADER: LOGO, JUDUL, & TOMBOL REFRESH ---
-col_logo, col_judul, col_refresh = st.columns([1, 4, 1.2], vertical_alignment="center")
+# --- BAGIAN HEADER: LOGO & JUDUL ---
+col_logo, col_judul = st.columns([1, 5], vertical_alignment="center")
 
 with col_logo:
     try:
@@ -93,12 +93,7 @@ with col_logo:
 
 with col_judul:
     st.title("Form Input")
-
-with col_refresh:
-    # Tombol Refresh untuk memuat ulang halaman
-    if st.button("🔄 Refresh", use_container_width=True):
-        st.rerun()
-# ---------------------------------------------------
+# -----------------------------------
 
 # 1. Tanggal (Otomatis hari ini)
 tanggal_hari_ini = datetime.date.today()
@@ -115,30 +110,37 @@ while waktu_mulai <= waktu_selesai:
 
 jam_update = st.selectbox("Jam Update", pilihan_jam)
 
-# 3 - 8. Input Manual Text & Dropdown
-st.subheader("Informasi Produksi")
-group = st.text_input("Group")
-line = st.text_input("Line")
+# --- PEMBUATAN FORM AGAR OTOMATIS KOSONG SETELAH SUBMIT ---
+with st.form("form_produksi", clear_on_submit=True):
+    
+    # 3 - 8. Input Manual Text & Dropdown
+    st.subheader("Informasi Produksi")
+    group = st.text_input("Group")
+    line = st.text_input("Line")
 
-pilihan_proses = ["END LINE", "SNAP", "IRON"]
-proses = st.selectbox("Proses", pilihan_proses)
+    pilihan_proses = ["END LINE", "SNAP", "IRON"]
+    proses = st.selectbox("Proses", pilihan_proses)
 
-style = st.text_input("Style")
-color = st.text_input("Color")
+    style = st.text_input("Style")
+    color = st.text_input("Color")
 
-# 9. Input Size & Qty (Grid Layout)
-st.subheader("Input Qty per Size")
-daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
-qty_inputs = {}
+    # 9. Input Size & Qty (Grid Layout)
+    st.subheader("Input Qty per Size")
+    daftar_size = ["XS", "S", "M", "L", "XL", "2XL", "4XL", "OVERSIZE"]
+    qty_inputs = {}
 
-cols = st.columns(4)
-for i, size in enumerate(daftar_size):
-    with cols[i % 4]:
-        qty_inputs[size] = st.number_input(f"Size {size}", min_value=0, step=1, key=f"qty_{size}")
+    cols = st.columns(4)
+    for i, size in enumerate(daftar_size):
+        with cols[i % 4]:
+            qty_inputs[size] = st.number_input(f"Size {size}", min_value=0, step=1, key=f"qty_{size}")
 
-# Tombol Submit
-st.markdown("<br>", unsafe_allow_html=True)
-if st.button("Submit Data", use_container_width=True):
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Tombol Submit di dalam Form
+    submit_button = st.form_submit_button("Submit Data")
+
+# --- PROSES KETIKA TOMBOL SUBMIT DI-KLIK ---
+if submit_button:
     total_qty = sum(qty_inputs.values())
     
     if group and line and style and color and total_qty > 0:
