@@ -63,9 +63,14 @@ div.stButton > button:hover {
 }
 /* Mengubah warna toolbar melayang pada tabel (st.dataframe) menjadi abu-abu */
 [data-testid="stElementToolbar"] {
-    background-color: #E8ECEF !important;
+    background-color: #FFFFFF !important;
     border-radius: 8px;
-    padding: 2px;
+    padding: 4px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+/* Memastikan ikon di dalam toolbar terlihat jelas berwarna hitam */
+[data-testid="stElementToolbar"] button svg {
+    fill: #000000 !important;
 }
 </style>
 """
