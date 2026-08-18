@@ -63,7 +63,7 @@ div.stButton > button:hover {
 }
 /* Mengubah warna toolbar melayang pada tabel (st.dataframe) menjadi abu-abu */
 [data-testid="stElementToolbar"] {
-    background-color: #CBD5E1 !important;
+    background-color: #E8ECEF !important;
     border-radius: 8px;
     padding: 2px;
 }
