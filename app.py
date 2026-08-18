@@ -233,11 +233,6 @@ if sheet:
                             with col_m2:
                                 st.metric(label=f"Total {proses_list[i+1][0]}", value=int(proses_list[i+1][1]))
                                 
-                    # Total keseluruhan hari ini
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    total_produksi_hari_ini = df_hari_ini['QTY'].sum()
-                    st.metric(label="🌟 TOTAL KESELURUHAN PRODUKSI HARI INI", value=int(total_produksi_hari_ini))
-                    
                 else:
                     st.info("Belum ada data produksi yang diinput untuk hari ini.")
             else:
