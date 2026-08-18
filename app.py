@@ -70,7 +70,7 @@ div.stButton > button:hover {
 }
 /* Memastikan ikon di dalam toolbar terlihat jelas berwarna hitam */
 [data-testid="stElementToolbar"] button svg {
-    fill: #000000 !important;
+    fill: #FFFFFF !important;
 }
 </style>
 """
