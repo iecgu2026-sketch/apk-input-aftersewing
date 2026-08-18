@@ -177,10 +177,10 @@ if st.button("Submit Data"):
             except Exception as e:
                 st.error(f"Terjadi kesalahan saat menyimpan: {e}")
     else:
-        st.warning("Mohon lengkapi semua field text dan pastikan minimal ada satu Size dengan Qty lebih dan Qty > 0.")
+        st.warning("Mohon lengkapi semua field text dan pastikan minimal ada satu Size dengan Qty lebih dari 0.")
 
 # ==========================================================
-# --- BAGIAN RESUME / REKAP PRODUKSI HARI INI (DENGAN KUMULATIF) ---
+# --- BAGIAN RESUME / REKAP PRODUKSI HARI INI ---
 # ==========================================================
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader(f"📊 Resume Produksi Hari Ini ({tanggal_str})")
@@ -200,30 +200,44 @@ if sheet:
                 if not df_hari_ini.empty:
                     df_hari_ini['QTY'] = pd.to_numeric(df_hari_ini['QTY'], errors='coerce').fillna(0)
                     
-                    # 1. Sum Qty per Proses, Line, dan Jam Update
+                    # 1. Sum Qty per Proses, Line, dan Jam Update untuk Tabel
                     rekap = df_hari_ini.groupby(['PROSES', 'LINE', 'JAM UPDATE'], as_index=False)['QTY'].sum()
                     rekap.rename(columns={'QTY': 'QTY JAM INI'}, inplace=True)
                     
-                    # 2. Menghitung Qty Kumulatif per Proses & Line berdasarkan urutan Jam Update
                     rekap['QTY KUMULATIF'] = rekap.groupby(['PROSES', 'LINE'])['QTY JAM INI'].cumsum()
                     
-                    # 3. Mengatur urutan proses agar "END LINE" selalu berada di urutan paling atas, lalu proses lainnya
                     def urutan_proses(p):
                         if str(p).strip().upper() == "END LINE":
                             return 0
                         return 1
 
                     rekap['PRIORITAS'] = rekap['PROSES'].apply(urutan_proses)
-                    
-                    # 4. Sorting berdasarkan prioritas proses (END LINE duluan), lalu Line, lalu Jam Update secara kronologis
                     rekap = rekap.sort_values(by=['PRIORITAS', 'PROSES', 'LINE', 'JAM UPDATE']).drop(columns=['PRIORITAS'])
                     
                     # Tampilkan Tabel Resume
                     st.dataframe(rekap, use_container_width=True, hide_index=True)
                     
-                    # Total keseluruhan Qty hari ini
+                    # 2. Kotak Total per Proses (END LINE ditaruh paling depan)
+                    st.markdown("### 📌 Total Qty per Proses")
+                    total_per_proses = df_hari_ini.groupby('PROSES')['QTY'].sum().reset_index()
+                    total_per_proses['PRIORITAS'] = total_per_proses['PROSES'].apply(urutan_proses)
+                    total_per_proses = total_per_proses.sort_values(by=['PRIORITAS', 'PROSES']).drop(columns=['PRIORITAS'])
+                    
+                    # Menampilkan metrik dalam kolom (2 kolom per baris)
+                    proses_list = total_per_proses.values.tolist()
+                    for i in range(0, len(proses_list), 2):
+                        col_m1, col_m2 = st.columns(2)
+                        with col_m1:
+                            st.metric(label=f"Total {proses_list[i][0]}", value=int(proses_list[i][1]))
+                        if i + 1 < len(proses_list):
+                            with col_m2:
+                                st.metric(label=f"Total {proses_list[i+1][0]}", value=int(proses_list[i+1][1]))
+                                
+                    # Total keseluruhan hari ini
+                    st.markdown("<br>", unsafe_allow_html=True)
                     total_produksi_hari_ini = df_hari_ini['QTY'].sum()
-                    st.metric(label="Total Qty Produksi Hari Ini", value=int(total_produksi_hari_ini))
+                    st.metric(label="🌟 TOTAL KESELURUHAN PRODUKSI HARI INI", value=int(total_produksi_hari_ini))
+                    
                 else:
                     st.info("Belum ada data produksi yang diinput untuk hari ini.")
             else:
