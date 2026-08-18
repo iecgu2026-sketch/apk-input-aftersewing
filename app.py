@@ -2,6 +2,7 @@ import streamlit as st
 import datetime
 import gspread
 import json
+import pandas as pd
 from google.oauth2.service_account import Credentials
 
 # Konfigurasi Halaman (Harus dipanggil pertama kali)
@@ -60,6 +61,11 @@ div.stButton > button:hover {
     background-color: #2D3748 !important;
     color: #FFFFFF !important;
 }
+
+/* Styling Tabel Resume */
+dataframe {
+    background-color: #FFFFFF;
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -100,20 +106,19 @@ with col_judul:
     st.title("Form Input")
 
 with col_refresh:
-    # Tombol Refresh untuk mereset form menjadi kosong
     if st.button("🔄 Refresh"):
         st.session_state['form_key'] += 1
         st.rerun()
 # ---------------------------------------------------
 
-# Kita gunakan key unik yang akan berubah nilainya saat tombol refresh ditekan
 f_key = st.session_state['form_key']
 
 # 1. Tanggal (Otomatis hari ini)
 tanggal_hari_ini = datetime.date.today()
-st.text_input("Tanggal", value=tanggal_hari_ini.strftime("%d-%m-%Y"), disabled=True, key=f"tgl_{f_key}")
+tanggal_str = tanggal_hari_ini.strftime("%d-%m-%Y")
+st.text_input("Tanggal", value=tanggal_str, disabled=True, key=f"tgl_{f_key}")
 
-# 2. Jam Update (07:00 - 18:00, interval 30 menit)
+# 2. Jam Update
 waktu_mulai = datetime.datetime.strptime("07:00", "%H:%M")
 waktu_selesai = datetime.datetime.strptime("18:00", "%H:%M")
 pilihan_jam = []
@@ -124,12 +129,12 @@ while waktu_mulai <= waktu_selesai:
 
 jam_update = st.selectbox("Jam Update", pilihan_jam, key=f"jam_{f_key}")
 
-# 3 - 8. Input Manual Text & Dropdown (Menggunakan key dinamis)
+# 3 - 8. Input Manual Text & Dropdown
 st.subheader("Informasi Produksi")
 group = st.text_input("Group", key=f"group_{f_key}")
 line = st.text_input("Line", key=f"line_{f_key}")
 
-pilihan_proses = ["END LINE", "SNAP", "IRON","TANDA KANCING","PASANG KANCING","EMBLEM","LUBANG KANCING","BARTACK","FOLDING","BUANG BENANG + KANCING"]
+pilihan_proses = ["END LINE", "SNAP", "IRON", "TANDA KANCING", "PASANG KANCING", "EMBLEM", "LUBANG KANCING", "BARTACK", "FOLDING", "BUANG BENANG + KANCING"]
 proses = st.selectbox("Proses", pilihan_proses, key=f"proses_{f_key}")
 
 style = st.text_input("Style", key=f"style_{f_key}")
@@ -159,7 +164,7 @@ if st.button("Submit Data"):
                 for size, qty in qty_inputs.items():
                     if qty > 0:
                         row_data = [
-                            tanggal_hari_ini.strftime("%d-%m-%Y"),
+                            tanggal_str,
                             jam_update,
                             group,
                             line,
@@ -178,3 +183,47 @@ if st.button("Submit Data"):
                 st.error(f"Terjadi kesalahan saat menyimpan: {e}")
     else:
         st.warning("Mohon lengkapi semua field text dan pastikan minimal ada satu Size dengan Qty lebih dari 0.")
+
+# ==========================================
+# --- BAGIAN RESUME / REKAP PRODUKSI HARI INI ---
+# ==========================================
+st.markdown("<br>", unsafe_allow_html=True)
+st.subheader(f"📊 Resume Produksi Hari Ini ({tanggal_str})")
+
+sheet = get_sheet()
+if sheet:
+    try:
+        # Mengambil seluruh data dari Google Sheets
+        all_data = sheet.get_all_records()
+        
+        if all_data:
+            df = pd.DataFrame(all_data)
+            
+            # Memastikan nama kolom sesuai dengan urutan di Google Sheets Anda
+            # Berdasarkan struktur data: Tanggal, Jam, Group, Line, Proses, Style, Color, Size, Qty
+            if 'Tanggal' in df.columns and 'Qty' in df.columns:
+                # Filter hanya untuk data hari ini
+                df_hari_ini = df[df['Tanggal'] == tanggal_str].copy()
+                
+                if not df_hari_ini.empty:
+                    # Mengubah kolom Qty menjadi angka (integer) agar bisa di-sum
+                    df_hari_ini['Qty'] = pd.to_numeric(df_hari_ini['Qty'], errors='coerce').fillna(0)
+                    
+                    # Membuat tabel pivot / rekap berdasarkan Line, Style, dan Proses, dengan rincian Jam Terakhir Update
+                    # Atau rekap total per Line, Style, Proses, dan Size
+                    rekap_df = df_hari_ini.groupby(['Line', 'Style', 'Proses', 'Jam', 'Size'], as_index=False)['Qty'].sum()
+                    
+                    # Menampilkan tabel rekap interaktif
+                    st.dataframe(rekap_df, use_container_width=True, hide_index=True)
+                    
+                    # Menampilkan total keseluruhan Qty hari ini
+                    total_produksi_hari_ini = df_hari_ini['Qty'].sum()
+                    st.metric(label="Total Qty Produksi Hari Ini", value=int(total_produksi_hari_ini))
+                else:
+                    st.info("Belum ada data produksi yang diinput untuk hari ini.")
+            else:
+                st.warning("Format kolom pada Google Sheets belum terbaca dengan benar (pastikan header kolom bernama Tanggal, Jam, Group, Line, Proses, Style, Color, Size, Qty).")
+        else:
+            st.info("Google Sheets masih kosong.")
+    except Exception as e:
+        st.error(f"Gagal memuat resume data: {e}")
