@@ -133,7 +133,7 @@ color = st.text_input("Color", key=f"color_{f_key}")
 
 # 9. Input Size & Qty (Grid Layout)
 st.subheader("Input Qty per Size")
-daftar_size = ["XS", "M", "2XL", "4XL", "S", "XL", "L", "OVERSIZE"]
+daftar_size = ["XS", "M", "2XL", "4XL", "S", "L", "XL", "OVERSIZE"]
 qty_inputs = {}
 
 cols = st.columns(4)
