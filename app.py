@@ -33,6 +33,20 @@ h1, h2, h3 {
     color: #000000 !important;
     border-radius: 5px;
 }
+/* Mengatur warna tombol Submit agar tidak ngeblock hitam (menjadi abu-abu gelap elegan dengan teks putih) */
+div.stButton > button {
+    background-color: #4A5568 !important;
+    color: #FFFFFF !important;
+    border-radius: 5px;
+    border: none;
+    font-weight: bold;
+}
+
+/* Efek saat tombol disentuh/di-klik */
+div.stButton > button:hover {
+    background-color: #2D3748 !important;
+    color: #FFFFFF !important;
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
