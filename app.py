@@ -80,7 +80,7 @@ waktu_selesai = datetime.datetime.strptime("18:00", "%H:%M")
 pilihan_jam = []
 while waktu_mulai <= waktu_selesai:
     pilihan_jam.append(waktu_mulai.strftime("%H:%M"))
-    waktu_mulai += datetime.timedelta(minutes=30)
+    waktu_mulai += datetime.timedelta(minutes=60)
 jam_update = st.selectbox("Jam Update", pilihan_jam, key=f"jam_{f_key}")
 
 # --- FORM INPUT ---
