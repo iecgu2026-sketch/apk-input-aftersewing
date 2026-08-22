@@ -60,7 +60,7 @@ col_logo, col_judul, col_refresh = st.columns([1, 4, 1.2], vertical_alignment="c
 with col_logo:
     try: st.image("logo pt.png", width=90)
     except: st.write("Logo")
-with col_judul: st.title("Form Input")
+with col_judul: st.title("Form Input Sewing")
 with col_refresh:
     if st.button("🔄 Refresh"):
         st.session_state['form_key'] += 1
